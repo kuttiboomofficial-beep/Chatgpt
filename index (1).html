@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<meta name="description" content="SHREE JI CONNECT - Business CRM">
+<title>SHREE JI CONNECT</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f5f5f5;color:#222}
+button,input,select,textarea{font:inherit}
+button,.btn{border:0;border-radius:8px;padding:10px 14px;cursor:pointer}
+button{background:#222;color:#fff;margin:3px}
+.orange{background:#f28c18;color:#fff}.green{background:#198754;color:#fff}.red{background:#dc3545;color:#fff}.light{background:#e9ecef;color:#222}
+header{background:#111;color:#fff;padding:14px 16px;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:20px}.sub{color:#bbb;font-size:12px;margin-top:3px}
+nav{display:flex;gap:6px;overflow:auto;background:#222;padding:7px}
+nav button{white-space:nowrap;background:#333;font-size:12px}
+main{max-width:1200px;margin:auto;padding:14px}
+section{display:none}section.active{display:block}
+.card{background:#fff;border-radius:12px;padding:15px;margin:12px 0;box-shadow:0 1px 5px #ddd}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.kpi{font-size:28px;font-weight:bold;margin-top:6px}
+.muted{color:#777;font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.tile{background:#fff;padding:15px;border-radius:12px;box-shadow:0 1px 5px #ddd}
+.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.full{grid-column:1/-1}
+label{display:block;font-size:12px;font-weight:bold;margin:7px 0 4px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;background:#fff}
+.actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}
+.tablewrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:720px}
+th,td{padding:9px;border-bottom:1px solid #eee;text-align:left;font-size:13px}
+.status{display:inline-block;padding:5px 9px;border-radius:20px;font-weight:bold;font-size:12px}
+.s-Pending{background:#fff3cd;color:#856404}.s-Started{background:#cfe2ff;color:#084298}
+.s-Finished{background:#d1e7dd;color:#0f5132}.s-Delivered{background:#d1e7dd;color:#146c43}
+.s-Cancelled{background:#f8d7da;color:#842029}
+.modalbg{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:12px;z-index:20}
+.modalbg.show{display:flex}.modal{background:#fff;width:min(850px,100%);max-height:92vh;overflow:auto;border-radius:14px;padding:16px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 15px;border-radius:20px;display:none;z-index:30}
+@media(max-width:600px){.formgrid{grid-template-columns:1fr}.full{grid-column:auto}main{padding:9px}.card{padding:12px}}
+</style>
+</head>
+<body>
+<header><h1 id="brand">SHREE JI CONNECT</h1><div id="subtitle" class="sub">Business CRM</div></header>
+<nav id="nav"></nav>
+<main>
+<section id="dashboard"></section>
+<section id="customers"></section>
+<section id="orders"></section>
+<section id="production"></section>
+<section id="reports"></section>
+<section id="exhibitions"></section>
+<section id="templates"></section>
+<section id="settings"></section>
+<section id="backup"></section>
+</main>
+<div id="modalbg" class="modalbg"><div id="modal" class="modal"></div></div>
+<div id="toast" class="toast"></div>
+
+<script>
+const KEY='sjc_clean_v1';
+const STATUS=['Pending','Started','Finished','Delivered','Cancelled'];
+const defaults={
+ settings:{company:'SHREE JI GOLD CREATOR LLP',subtitle:'Business CRM',phone:'',address:'',country:'91',defaultType:'Direct',defaultStatus:'Pending',version:'2.0.0'},
+ customers:[],orders:[],exhibitions:[],templates:[
+  {id:'t1',name:'Order Started',body:'Dear {{name}},\\n\\nYour order {{order}} has been started.\\nWeight: {{weight}}g\\nStatus: {{status}}\\n\\nThank you.'},
+  {id:'t2',name:'Order Finished',body:'Dear {{name}},\\n\\nYour order {{order}} is finished.\\nWeight: {{weight}}g\\nStatus: {{status}}\\n\\nThank you.'}
+ ]
+};
+let db=load();
+
+function $(id){return document.getElementById(id)}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function load(){
+ try{let x=JSON.parse(localStorage.getItem(KEY));return x?{...defaults,...x,settings:{...defaults.settings,...x.settings}}:structuredClone(defaults)}
+ catch(e){return structuredClone(defaults)}
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function toast(s){$('toast').textContent=s;$('toast').style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>$('toast').style.display='none',1800)}
+function cust(id){return db.customers.find(x=>String(x.id)===String(id))||{name:'Unknown',mobile:'',shop:'',city:''}}
+function ord(id){return db.orders.find(x=>String(x.id)===String(id))}
+function statusBadge(s){s=s||'Pending';return '<span class="status s-'+esc(s)+'">'+esc(s)+'</span>'}
+function go(id){document.querySelectorAll('section').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');renderAll()}
+function modal(title,body){$('modal').innerHTML='<h2>'+esc(title)+'</h2>'+body+'<div class="actions"><button class="light" onclick="closeModal()">Close</button></div>';$('modalbg').classList.add('show')}
+function closeModal(){$('modalbg').classList.remove('show')}
+function buildNav(){
+ let items=[['dashboard','🏠 Dashboard'],['customers','👥 Customers'],['orders','📦 Orders'],['production','🏭 Production'],['reports','📊 Reports'],['exhibitions','🎪 Exhibitions'],['templates','📝 Templates'],['settings','⚙️ Settings'],['backup','💾 Backup']];
+ $('nav').innerHTML=items.map(x=>'<button onclick="go(\''+x[0]+'\')">'+x[1]+'</button>').join('')
+}
+function totals(){
+ return {pending:db.orders.filter(o=>o.status==='Pending').length,started:db.orders.filter(o=>o.status==='Started').length,finished:db.orders.filter(o=>o.status==='Finished').length,delivered:db.orders.filter(o=>o.status==='Delivered').length,cancelled:db.orders.filter(o=>o.status==='Cancelled').length,weight:db.orders.reduce((s,o)=>s+(+o.weight||0),0)}
+}
+function renderDashboard(){
+ let t=totals();
+ $('dashboard').innerHTML='<h2>Dashboard</h2><div class="grid">'+
+ [['Customers',db.customers.length],['Total Orders',db.orders.length],['Total Weight',t.weight.toFixed(3)+'g'],['Pending',t.pending],['Started',t.started],['Finished',t.finished],['Delivered',t.delivered],['Cancelled',t.cancelled]]
+ .map(x=>'<div class="card"><div class="muted">'+x[0]+'</div><div class="kpi">'+x[1]+'</div></div>').join('')+
+ '<div class="card"><h3>Quick Actions</h3><div class="actions"><button class="orange" onclick="openCustomer()">+ Customer</button><button class="orange" onclick="openOrder()">+ Order</button></div></div></div>'
+}
+function openCustomer(id){
+ let c=id?cust(id):{name:'',shop:'',mobile:'',alt:'',city:'',state:'',address:'',notes:''};
+ modal(id?'Edit Customer':'Add Customer','<div class="formgrid">'+
+ '<div><label>Name *</label><input id="cn" value="'+esc(c.name)+'"></div><div><label>Mobile *</label><input id="cm" value="'+esc(c.mobile)+'"></div>'+
+ '<div><label>Shop</label><input id="cs" value="'+esc(c.shop)+'"></div><div><label>Alternate Mobile</label><input id="ca" value="'+esc(c.alt)+'"></div>'+
+ '<div><label>City</label><input id="cc" value="'+esc(c.city)+'"></div><div><label>State</label><input id="cstate" value="'+esc(c.state)+'"></div>'+
+ '<div class="full"><label>Address</label><textarea id="caddr">'+esc(c.address)+'</textarea></div><div class="full"><label>Notes</label><textarea id="cnotes">'+esc(c.notes)+'</textarea></div></div>'+
+ '<div class="actions"><button class="orange" onclick="saveCustomer('+(id||0)+')">Save Customer</button></div>')
+}
+function saveCustomer(id){
+ let x={name:$('cn').value.trim(),mobile:$('cm').value.trim(),shop:$('cs').value.trim(),alt:$('ca').value.trim(),city:$('cc').value.trim(),state:$('cstate').value.trim(),address:$('caddr').value.trim(),notes:$('cnotes').value.trim()};
+ if(!x.name||!x.mobile)return toast('Name and mobile required');
+ if(id)Object.assign(cust(id),x);else db.customers.push({id:Date.now(),...x,dateAdded:new Date().toISOString().slice(0,10)});
+ save();closeModal();renderAll();toast('Customer saved')
+}
+function renderCustomers(){
+ let q=($('cq')?.value||'').toLowerCase();
+ let a=db.customers.filter(c=>(c.name+' '+c.shop+' '+c.mobile+' '+c.city).toLowerCase().includes(q));
+ $('customers').innerHTML='<h2>Customers</h2><div class="actions"><button class="orange" onclick="openCustomer()">+ Add Customer</button><input id="cq" placeholder="Search customer / shop / mobile" value="'+esc(q)+'" oninput="renderCustomers()"></div>'+
+ '<div class="card tablewrap">'+(a.length?'<table><tr><th>Name</th><th>Shop</th><th>Mobile</th><th>City</th><th>Actions</th></tr>'+a.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+esc(c.shop)+'</td><td>'+esc(c.mobile)+'</td><td>'+esc(c.city)+'</td><td><button class="light" onclick="openCustomer('+c.id+')">Edit</button><button class="red" onclick="deleteCustomer('+c.id+')">Delete</button></td></tr>').join('')+'</table>':'<div class="muted">No customers</div>')+'</div>'
+}
+function deleteCustomer(id){if(confirm('Delete customer?')){db.customers=db.customers.filter(c=>c.id!=id);save();renderAll()}}
+function openOrder(id){
+ if(!db.customers.length)return toast('Add a customer first');
+ let o=id?ord(id):{orderNo:'SJ-'+new Date().getFullYear()+'-'+String(db.orders.length+1).padStart(4,'0'),orderDate:new Date().toISOString().slice(0,10),customerId:db.customers[0].id,type:db.settings.defaultType,status:'Pending',weight:'',touch:'',screw:'',advanceMode:'Cash',advanceAmount:'',startDate:'',delivered:'',exhibitionId:'',notes:''};
+ modal(id?'Edit Order':'New Order','<div class="formgrid">'+
+ '<div><label>Order Number *</label><input id="ono" value="'+esc(o.orderNo)+'"></div><div><label>Order Date *</label><input id="od" type="date" value="'+esc(o.orderDate)+'"></div>'+
+ '<div><label>Customer *</label><select id="oc">'+db.customers.map(c=>'<option value="'+c.id+'" '+(c.id==o.customerId?'selected':'')+'>'+esc(c.name)+' — '+esc(c.mobile)+'</option>').join('')+'</select></div>'+
+ '<div><label>Order Type</label><select id="ot"><option '+(o.type==='Direct'?'selected':'')+'>Direct</option><option '+(o.type==='SM'?'selected':'')+'>SM</option></select></div>'+
+ '<div><label>Weight (g) *</label><input id="ow" type="number" step=".001" value="'+esc(o.weight)+'"></div><div><label>Touch *</label><input id="touch" value="'+esc(o.touch)+'"></div>'+
+ '<div><label>Screw Type</label><input id="screw" value="'+esc(o.screw)+'"></div><div><label>Advance Mode</label><select id="am"><option>Cash</option><option>Gpay</option><option>Bank</option></select></div>'+
+ '<div><label>Advance Amount</label><input id="adv" type="number" step=".01" value="'+esc(o.advanceAmount)+'"></div><div><label>Start Date</label><input id="sd" type="date" value="'+esc(o.startDate)+'"></div>'+
+ '<div><label>Status</label><select id="orderStatus">'+STATUS.map(s=>'<option value="'+s+'" '+((o.status||'Pending')===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div>'+
+ '<div><label>Delivered Date</label><input id="dd" type="date" value="'+esc(o.delivered)+'"></div>'+
+ '<div class="full"><label>Notes</label><textarea id="onotes">'+esc(o.notes)+'</textarea></div></div>'+
+ '<div class="actions"><button class="orange" onclick="saveOrder('+(id||0)+')">Save Order</button></div>')
+}
+function saveOrder(id){
+ let x={orderNo:$('ono').value.trim(),orderDate:$('od').value,customerId:Number($('oc').value),type:$('ot').value,weight:Number($('ow').value)||0,touch:$('touch').value.trim(),screw:$('screw').value.trim(),advanceMode:$('am').value,advanceAmount:Number($('adv').value)||0,startDate:$('sd').value,status:$('orderStatus').value,delivered:$('dd').value,exhibitionId:'',notes:$('onotes').value.trim()};
+ if(!x.orderNo||!x.orderDate||!x.weight||!x.touch)return toast('Order No, date, weight and touch are required');
+ if(id)Object.assign(ord(id),x);else db.orders.push({id:Date.now(),...x});
+ if(x.status==='Delivered'&&!x.delivered){x.delivered=new Date().toISOString().slice(0,10);ord(id||db.orders[db.orders.length-1].id).delivered=x.delivered}
+ save();closeModal();renderAll();toast('Order saved')
+}
+function deleteOrder(id){if(confirm('Delete order?')){db.orders=db.orders.filter(o=>o.id!=id);save();renderAll()}}
+function setStatus(id,s){
+ let o=ord(id);if(!o)return;
+ o.status=String(s);
+ if(o.status==='Delivered'&&!o.delivered)o.delivered=new Date().toISOString().slice(0,10);
+ save();renderAll();toast('Status updated: '+o.status)
+}
+function renderOrders(){
+ let q=($('oq')?.value||'').toLowerCase(),st=$('ofs')?.value||'';
+ let a=db.orders.filter(o=>(o.orderNo+' '+cust(o.customerId).name+' '+cust(o.customerId).shop+' '+o.status).toLowerCase().includes(q)&&(!st||o.status===st));
+ $('orders').innerHTML='<h2>Order Management</h2><div class="actions"><button class="orange" onclick="openOrder()">+ New Order</button><input id="oq" placeholder="Search order / customer / shop" value="'+esc(q)+'" oninput="renderOrders()"><select id="ofs" onchange="renderOrders()"><option value="">All Status</option>'+STATUS.map(s=>'<option '+(st===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div>'+
+ '<div class="card tablewrap">'+(a.length?'<table><tr><th>Order</th><th>Date</th><th>Customer</th><th>Type</th><th>Weight</th><th>Status</th><th>Actions</th></tr>'+a.slice().reverse().map(o=>'<tr><td>'+esc(o.orderNo)+'</td><td>'+esc(o.orderDate)+'</td><td>'+esc(cust(o.customerId).name)+'</td><td>'+esc(o.type)+'</td><td>'+esc(o.weight)+'g</td><td>'+statusBadge(o.status)+'</td><td><button class="light" onclick="openOrder('+o.id+')">Edit</button><button class="red" onclick="deleteOrder('+o.id+')">Delete</button></td></tr>').join('')+'</table>':'<div class="muted">No orders</div>')+'</div>'
+}
+function productionBlock(type){
+ let a=db.orders.filter(o=>o.type===type);
+ return '<div class="card"><h3>'+type+' Production</h3><div class="grid">'+STATUS.map(s=>'<div class="card"><div class="muted">'+s+'</div><div class="kpi">'+a.filter(o=>o.status===s).length+'</div></div>').join('')+'</div>'+
+ '<div class="tablewrap"><table><tr><th>Order</th><th>Customer</th><th>Weight</th><th>Status</th></tr>'+ (a.length?a.map(o=>'<tr><td>'+esc(o.orderNo)+'</td><td>'+esc(cust(o.customerId).name)+'</td><td>'+esc(o.weight)+'g</td><td><select onchange="setStatus('+o.id+',this.value)">'+STATUS.map(s=>'<option value="'+s+'" '+(o.status===s?'selected':'')+'>'+s+'</option>').join('')+'</select></td></tr>').join(''):'<tr><td colspan="4">No orders</td></tr>')+'</table></div></div>'
+}
+function renderProduction(){$('production').innerHTML='<h2>Production</h2>'+productionBlock('Direct')+productionBlock('SM')}
+function renderReports(){
+ let t=totals();
+ $('reports').innerHTML='<h2>Reports</h2><div class="grid">'+[['Orders',db.orders.length],['Weight',t.weight.toFixed(3)+'g'],['Pending',t.pending],['Started',t.started],['Finished',t.finished],['Delivered',t.delivered],['Cancelled',t.cancelled]].map(x=>'<div class="card"><div class="muted">'+x[0]+'</div><div class="kpi">'+x[1]+'</div></div>').join('')+'</div>'
+}
+function renderExhibitions(){$('exhibitions').innerHTML='<h2>Exhibitions</h2><div class="card"><p class="muted">Exhibition module ready for the next upgrade.</p></div>'}
+function renderTemplates(){$('templates').innerHTML='<h2>Message Templates</h2>'+db.templates.map(t=>'<div class="tile"><h3>'+esc(t.name)+'</h3><p style="white-space:pre-wrap">'+esc(t.body)+'</p></div>').join('')}
+function renderSettings(){
+ $('settings').innerHTML='<h2>Settings</h2><div class="card"><div class="formgrid"><div><label>Company Name</label><input id="setCompany" value="'+esc(db.settings.company)+'"></div><div><label>Subtitle</label><input id="setSubtitle" value="'+esc(db.settings.subtitle)+'"></div><div><label>Default Type</label><select id="setType"><option '+(db.settings.defaultType==='Direct'?'selected':'')+'>Direct</option><option '+(db.settings.defaultType==='SM'?'selected':'')+'>SM</option></select></div><div><label>Default Status</label><select id="setStatus">'+STATUS.map(s=>'<option '+(db.settings.defaultStatus===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div></div><div class="actions"><button class="orange" onclick="saveSettings()">Save Settings</button></div></div>'
+}
+function saveSettings(){db.settings.company=$('setCompany').value.trim();db.settings.subtitle=$('setSubtitle').value.trim();db.settings.defaultType=$('setType').value;db.settings.defaultStatus=$('setStatus').value;save();renderAll();toast('Settings saved')}
+function renderBackup(){$('backup').innerHTML='<h2>Backup & Restore</h2><div class="card"><p>Your data is stored locally in this browser.</p><div class="actions"><button class="orange" onclick="backup()">Export Backup</button><label class="btn light">Import Backup<input type="file" accept=".json" style="display:none" onchange="restoreBackup(event)"></label><button class="red" onclick="resetData()">Reset Data</button></div></div>'}
+function backup(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({app:'SHREE JI CONNECT',data:db},null,2)],{type:'application/json'}));a.download='shree-ji-connect-backup.json';a.click()}
+function restoreBackup(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let p=JSON.parse(r.result);if(!p.data?.customers||!p.data?.orders)throw 1;db=p.data;save();renderAll();toast('Backup restored')}catch(x){toast('Invalid backup')}};r.readAsText(f)}
+function resetData(){if(confirm('Reset all app data?')){localStorage.removeItem(KEY);location.reload()}}
+function renderAll(){
+ $('brand').textContent=db.settings.company||'SHREE JI CONNECT';$('subtitle').textContent=db.settings.subtitle||'Business CRM';
+ renderDashboard();renderCustomers();renderOrders();renderProduction();renderReports();renderExhibitions();renderTemplates();renderSettings();renderBackup()
+}
+buildNav();renderAll();go('dashboard');
+</script>
+</body>
+</html>
