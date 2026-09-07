@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111">
+<meta name="description" content="SHREE JI CONNECT - Business CRM, Orders, Production, WhatsApp, Reports and Exhibition Management">
+<title>SHREE JI CONNECT</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f5f7;color:#171717}
+button,input,select,textarea{font:inherit}
+button{border:0;border-radius:10px;padding:11px 16px;background:#111;color:#fff;cursor:pointer;font-weight:700}
+button.orange{background:#f47b00}button.green{background:#198c43}button.red{background:#c62828}button.light{background:#eee;color:#222}
+header{background:#111;color:#fff;padding:18px 26px;border-bottom:5px solid #f47b00;position:sticky;top:0;z-index:20}
+#brand{font-size:24px;font-weight:800}#subtitle{color:#bbb;margin-top:5px}
+nav{display:flex;gap:10px;overflow-x:auto;white-space:nowrap;background:#fff;padding:10px;border-bottom:1px solid #ddd;position:sticky;top:91px;z-index:19}
+nav button{background:#eee;color:#333;padding:12px 18px;border-radius:13px}
+nav button.active{background:#f47b00;color:#fff}
+main{max-width:1450px;margin:auto;padding:18px}
+section{display:none}section.active{display:block}
+h2{font-size:30px;margin:8px 0 20px}h3{margin-top:4px}
+.card{background:#fff;border:1px solid #ddd;border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 2px 8px #0000000c}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.tile{background:#fff;border:1px solid #ddd;border-radius:16px;padding:16px}
+.kpi{font-size:30px;font-weight:800;margin-top:8px}.muted{color:#777;font-size:14px}
+.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}
+label{display:block;font-size:14px;font-weight:700;margin:6px 0}
+input,select,textarea{width:100%;padding:12px;border:1px solid #d2d2d2;border-radius:10px;background:#fff}
+textarea{resize:vertical}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+.actions input,.actions select{width:auto;min-width:180px}
+.tablewrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:900px}
+th,td{padding:11px;border-bottom:1px solid #e8e8e8;text-align:left;vertical-align:middle}th{background:#f6f6f6}
+td button{margin:2px;padding:8px 10px;font-size:13px}
+.status{display:inline-block;padding:6px 10px;border-radius:18px;font-size:12px;font-weight:700}
+.s-Pending{background:#fff3cd;color:#856404}.s-Started{background:#cfe2ff;color:#084298}
+.s-Finished{background:#d1e7dd;color:#0f5132}.s-Delivered{background:#d1e7dd;color:#146c43}.s-Cancelled{background:#f8d7da;color:#842029}
+.hero{background:#111;color:#fff;border-radius:22px;padding:26px;margin-bottom:18px}
+.hero .big{font-size:22px;font-weight:800}.hero p{color:#ccc;font-size:17px}
+.quick{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.empty{padding:25px;text-align:center;color:#777}
+.modalbg{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;padding:12px;z-index:50}
+.modalbg.show{display:flex}.modal{width:min(950px,100%);max-height:94vh;overflow:auto;background:#fff;border-radius:18px;padding:20px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:12px 18px;border-radius:24px;display:none;z-index:100}
+.preview{max-width:100%;max-height:220px;border-radius:12px;border:1px solid #ddd}
+.small{font-size:12px}.danger-note{background:#fff3cd;border-radius:10px;padding:10px;color:#856404}
+@media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.quick{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:650px){
+ header{padding:15px 18px}#brand{font-size:21px}
+ nav{top:83px;padding:8px}.formgrid{grid-template-columns:1fr}.full{grid-column:auto}
+ .grid,.tiles{grid-template-columns:1fr 1fr}main{padding:12px}h2{font-size:26px}.card{padding:14px}
+ .quick{grid-template-columns:1fr 1fr}.actions input,.actions select{min-width:145px;flex:1}
+}
+</style>
+</head>
+<body>
+<header><div id="brand">SHREE JI GOLD CREATOR LLP</div><div id="subtitle">Customer CRM • Orders • Production • WhatsApp • Reports</div></header>
+<nav id="nav"></nav>
+<main>
+<section id="dashboard"></section>
+<section id="customers"></section>
+<section id="orders"></section>
+<section id="production"></section>
+<section id="reports"></section>
+<section id="whatsapp"></section>
+<section id="templates"></section>
+<section id="exhibitions"></section>
+<section id="print"></section>
+<section id="scanner"></section>
+<section id="backup"></section>
+<section id="settings"></section>
+<section id="menu"></section>
+</main>
+<div id="modalbg" class="modalbg"><div id="modal" class="modal"></div></div>
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+const KEY='sjc_business_v5';
+const STATUS=['Pending','Started','Finished','Delivered','Cancelled'];
+const defaults={
+ settings:{company:'SHREE JI GOLD CREATOR LLP',subtitle:'Customer CRM • Orders • Production • WhatsApp • Reports',phone:'',address:'',country:'91',defaultType:'Direct',defaultStatus:'Pending',version:'5.0.0',logo:''},
+ customers:[],orders:[],exhibitions:[],
+ templates:[
+  {id:'confirm',name:'Order Received Thank You',body:'Dear {{name}},\\n\\nThank you for your valuable order.\\nOrder: {{order}}\\nWeight: {{weight}}g\\n\\nThank you.'},
+  {id:'started',name:'Order Started',body:'Dear {{name}},\\n\\nYour order {{order}} has been started.\\nWeight: {{weight}}g\\nStatus: {{status}}\\n\\nThank you.'},
+  {id:'finished',name:'Order Finished',body:'Dear {{name}},\\n\\nYour order {{order}} has been finished.\\nStatus: {{status}}\\n\\nThank you.'},
+  {id:'ready',name:'Order Ready',body:'Dear {{name}},\\n\\nYour order {{order}} is ready for delivery.\\n\\nThank you.'},
+  {id:'delivery',name:'Delivery Update',body:'Dear {{name}},\\n\\nYour order {{order}} status is {{status}}.\\n\\nThank you.'},
+  {id:'cancelled',name:'Order Cancelled',body:'Dear {{name}},\\n\\nYour order {{order}} has been cancelled.\\n\\nThank you.'},
+  {id:'expo15',name:'Exhibition Invite - 15 Days',body:'Dear {{name}},\\n\\nOur exhibition is coming soon. Please visit our stall.\\n\\nThank you.'},
+  {id:'expotoday',name:'Exhibition Invite - Today',body:'Dear {{name}},\\n\\nOur exhibition is today. Stall No: {{stall}}. Please visit us.\\n\\nThank you.'},
+  {id:'visit',name:'Stall Visit Thank You',body:'Dear {{name}},\\n\\nThank you for visiting our exhibition stall. We truly appreciate your visit.\\n\\nThank you.'},
+  {id:'festival',name:'Festival Greeting',body:'Dear {{name}},\\n\\nWarm festival wishes from SHREE JI GOLD CREATOR LLP.\\n\\nThank you.'},
+  {id:'review',name:'Review Request',body:'Dear {{name}},\\n\\nThank you for choosing us. We would appreciate your valuable review.\\n\\nThank you.'},
+  {id:'repeat',name:'Repeat Order',body:'Dear {{name}},\\n\\nIt has been a pleasure serving you again. Please let us know if you need anything.\\n\\nThank you.'},
+  {id:'collection',name:'New Collection',body:'Dear {{name}},\\n\\nOur new collection is now available. Please contact us for details.\\n\\nThank you.'},
+  {id:'follow',name:'Follow-Up',body:'Dear {{name}},\\n\\nJust following up on your order. Please let us know if you need any assistance.\\n\\nThank you.'},
+  {id:'custom',name:'Custom Message',body:'Dear {{name}},\\n\\n'}
+ ]
+};
+let db=load(),current='dashboard',scanFile=null,bulkSel=new Set();
+
+function $(id){return document.getElementById(id)}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function load(){
+ try{
+  let x=JSON.parse(localStorage.getItem(KEY));
+  if(!x)return structuredClone(defaults);
+  return {...structuredClone(defaults),...x,settings:{...defaults.settings,...(x.settings||{})},templates:x.templates||structuredClone(defaults.templates),customers:x.customers||[],orders:x.orders||[],exhibitions:x.exhibitions||[]};
+ }catch(e){return structuredClone(defaults)}
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function toast(s){$('toast').textContent=s;$('toast').style.display='block';clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>{$('toast').style.display='none'},1800)}
+function cust(id){return db.customers.find(x=>String(x.id)===String(id))||{name:'Unknown',shop:'',mobile:'',city:'',state:'',address:''}}
+function ord(id){return db.orders.find(x=>String(x.id)===String(id))}
+function fmt(n){return Number(n||0).toFixed(3)}
+function badge(s){s=s||'Pending';return '<span class="status s-'+esc(s)+'">'+esc(s)+'</span>'}
+function nav(){
+ const a=[['dashboard','Dashboard'],['customers','Customer CRM'],['orders','Order Management'],['production','Production'],['reports','Reports'],['whatsapp','WhatsApp'],['templates','Templates'],['exhibitions','Exhibitions'],['print','Print Center'],['scanner','Visiting Card Scanner'],['backup','Backup & Restore'],['settings','Settings'],['menu','☰ Menu']];
+ $('nav').innerHTML=a.map(x=>'<button class="'+(current===x[0]?'active':'')+'" onclick="go(\''+x[0]+'\')">'+x[1]+'</button>').join('');
+}
+function go(id){current=id;document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');renderAll()}
+function modal(title,body){$('modal').innerHTML='<h2>'+esc(title)+'</h2>'+body+'<div class="actions"><button class="light" onclick="closeModal()">Close</button></div>';$('modalbg').classList.add('show')}
+function closeModal(){$('modalbg').classList.remove('show')}
+function totals(){
+ let z={weight:0};STATUS.forEach(s=>z[s.toLowerCase()]=0);
+ db.orders.forEach(o=>{z.weight+=+o.weight||0;z[(STATUS.includes(o.status)?o.status:'Pending').toLowerCase()]++});
+ return z;
+}
+function renderDashboard(){
+ let t=totals();
+ $('dashboard').innerHTML='<div class="hero"><div class="big">'+esc(db.settings.company)+'</div><p>'+esc(db.settings.subtitle)+'</p></div>'+
+ '<h2>Dashboard</h2><div class="grid">'+
+ [['Total Customers',db.customers.length],['Total Orders',db.orders.length],['Direct / SM',db.orders.filter(o=>o.type==='Direct').length+' / '+db.orders.filter(o=>o.type==='SM').length],['Total Weight',fmt(t.weight)+' g'],['Pending',t.pending],['Started',t.started],['Finished',t.finished],['Delivered',t.delivered],['Cancelled',t.cancelled]].map(x=>'<div class="card"><div class="muted">'+x[0]+'</div><div class="kpi">'+x[1]+'</div></div>').join('')+
+ '</div><div class="card"><h2 style="font-size:22px">Quick Actions</h2><div class="quick"><button class="orange" onclick="openCustomer()">+ Customer</button><button class="orange" onclick="openOrder()">+ Order</button><button class="green" onclick="go(\'whatsapp\')">WhatsApp</button><button onclick="go(\'scanner\')">Scan Card</button><button onclick="go(\'reports\')">Reports</button></div></div>'+
+ '<div class="card"><h3>Recent Orders</h3>'+recentOrders()+'</div>';
+}
+function recentOrders(){
+ let a=db.orders.slice().reverse().slice(0,8);
+ if(!a.length)return '<div class="empty">No orders yet</div>';
+ return '<div class="tablewrap"><table><tr><th>Order</th><th>Customer</th><th>Weight</th><th>Status</th></tr>'+a.map(o=>'<tr><td>'+esc(o.orderNo)+'</td><td>'+esc(cust(o.customerId).name)+'</td><td>'+fmt(o.weight)+'g</td><td>'+badge(o.status)+'</td></tr>').join('')+'</table></div>';
+}
+function openCustomer(id){
+ let c=id?cust(id):{name:'',shop:'',mobile:'',alt:'',city:'',state:'',address:'',notes:''};
+ modal(id?'Edit Customer':'New Customer','<div class="formgrid"><div><label>Customer Name *</label><input id="cn" value="'+esc(c.name)+'"></div><div><label>Mobile *</label><input id="cm" value="'+esc(c.mobile)+'"></div><div><label>Shop Name</label><input id="cs" value="'+esc(c.shop)+'"></div><div><label>Alternate Mobile</label><input id="ca" value="'+esc(c.alt)+'"></div><div><label>City</label><input id="cc" value="'+esc(c.city)+'"></div><div><label>State</label><input id="cstate" value="'+esc(c.state)+'"></div><div class="full"><label>Full Address</label><textarea id="caddr" rows="3">'+esc(c.address)+'</textarea></div><div class="full"><label>Notes</label><textarea id="cnotes">'+esc(c.notes)+'</textarea></div></div><div class="actions"><button class="orange" onclick="saveCustomer('+(id||0)+')">Save Customer</button></div>');
+}
+function saveCustomer(id){
+ let x={name:$('cn').value.trim(),mobile:$('cm').value.trim(),shop:$('cs').value.trim(),alt:$('ca').value.trim(),city:$('cc').value.trim(),state:$('cstate').value.trim(),address:$('caddr').value.trim(),notes:$('cnotes').value.trim()};
+ if(!x.name||!x.mobile)return toast('Name and mobile required');
+ if(id)Object.assign(cust(id),x);else db.customers.push({id:Date.now(),...x,dateAdded:new Date().toISOString().slice(0,10)});
+ save();closeModal();renderAll();toast('Customer saved');
+}
+function renderCustomers(){
+ let q=($('cq')?.value||'').toLowerCase(),a=db.customers.filter(c=>(c.name+' '+c.shop+' '+c.mobile+' '+c.city+' '+c.state).toLowerCase().includes(q));
+ $('customers').innerHTML='<h2>Customer CRM</h2><div class="actions"><button class="orange" onclick="openCustomer()">+ New Customer</button><input id="cq" placeholder="Search customer / shop / mobile / city" value="'+esc(q)+'" oninput="renderCustomers()"></div><div class="card tablewrap">'+(a.length?'<table><tr><th>Customer</th><th>Shop</th><th>Mobile</th><th>City</th><th>Orders</th><th>Actions</th></tr>'+a.map(c=>'<tr><td><b>'+esc(c.name)+'</b></td><td>'+esc(c.shop)+'</td><td>'+esc(c.mobile)+'</td><td>'+esc(c.city)+'</td><td>'+db.orders.filter(o=>o.customerId==c.id).length+'</td><td><button class="light" onclick="openCustomer('+c.id+')">Edit</button><button class="green" onclick="openWA('+c.id+')">WA</button><button class="red" onclick="deleteCustomer('+c.id+')">Delete</button></td></tr>').join('')+'</table>':'<div class="empty">No customers found</div>')+'</div>';
+}
+function deleteCustomer(id){if(confirm('Delete customer? Their orders will remain in the database.')){db.customers=db.customers.filter(c=>c.id!=id);save();renderAll();toast('Customer deleted')}}
+function openOrder(id){
+ if(!db.customers.length)return toast('Add a customer first');
+ let o=id?ord(id):{orderNo:'SJ-'+new Date().getFullYear()+'-'+String(db.orders.length+1).padStart(4,'0'),orderDate:new Date().toISOString().slice(0,10),customerId:db.customers[0].id,type:db.settings.defaultType,status:db.settings.defaultStatus,weight:'',touch:'',screw:'',ladyRing:'',gentRing:'',huid:'Yes',advanceMode:'Cash',advanceAmount:'',startDate:'',delivered:'',exhibitionId:'',notes:''};
+ modal(id?'Edit Order':'New Order','<div class="formgrid"><div><label>Order Number *</label><input id="ono" value="'+esc(o.orderNo)+'"></div><div><label>Order Date *</label><input id="od" type="date" value="'+esc(o.orderDate)+'"></div><div><label>Customer *</label><select id="oc">'+db.customers.map(c=>'<option value="'+c.id+'" '+(c.id==o.customerId?'selected':'')+'>'+esc(c.name)+' — '+esc(c.mobile)+'</option>').join('')+'</select></div><div><label>Exhibition</label><select id="oex"><option value="">-- None --</option>'+db.exhibitions.map(e=>'<option value="'+e.id+'" '+(e.id==o.exhibitionId?'selected':'')+'>'+esc(e.name)+'</option>').join('')+'</select></div><div><label>Order Type *</label><select id="ot"><option '+(o.type==='Direct'?'selected':'')+'>Direct</option><option '+(o.type==='SM'?'selected':'')+'>SM</option></select></div><div><label>Weight (g) *</label><input id="ow" type="number" step=".001" value="'+esc(o.weight)+'"></div><div><label>Touch *</label><input id="touch" value="'+esc(o.touch)+'"></div><div><label>Screw Type</label><input id="screw" value="'+esc(o.screw)+'"></div><div><label>Lady\'s Ring Size</label><input id="lr" value="'+esc(o.ladyRing)+'"></div><div><label>Gent\'s Ring Size</label><input id="gr" value="'+esc(o.gentRing)+'"></div><div><label>HUID</label><select id="huid"><option '+(o.huid!=='No'?'selected':'')+'>Yes</option><option '+(o.huid==='No'?'selected':'')+'>No</option></select></div><div><label>Advance Mode</label><select id="am"><option '+(o.advanceMode==='Cash'?'selected':'')+'>Cash</option><option '+(o.advanceMode==='Gpay'?'selected':'')+'>Gpay</option><option '+(o.advanceMode==='Bank'?'selected':'')+'>Bank</option></select></div><div><label>Advance Amount (₹)</label><input id="adv" type="number" step=".01" value="'+esc(o.advanceAmount)+'"></div><div><label>Start Date</label><input id="sd" type="date" value="'+esc(o.startDate)+'"></div><div><label>Status</label><select id="orderStatus">'+STATUS.map(s=>'<option value="'+s+'" '+((o.status||'Pending')===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div><div><label>Delivered Date</label><input id="dd" type="date" value="'+esc(o.delivered)+'"></div><div class="full"><label>Notes</label><textarea id="onotes" rows="3">'+esc(o.notes)+'</textarea></div></div><div class="actions"><button class="orange" onclick="saveOrder('+(id||0)+')">Save Order</button></div>');
+}
+function saveOrder(id){
+ let x={orderNo:$('ono').value.trim(),orderDate:$('od').value,customerId:Number($('oc').value),exhibitionId:$('oex').value?Number($('oex').value):'',type:$('ot').value,weight:Number($('ow').value)||0,touch:$('touch').value.trim(),screw:$('screw').value.trim(),ladyRing:$('lr').value.trim(),gentRing:$('gr').value.trim(),huid:$('huid').value,advanceMode:$('am').value,advanceAmount:Number($('adv').value)||0,startDate:$('sd').value,status:String($('orderStatus').value),delivered:$('dd').value,notes:$('onotes').value.trim()};
+ if(!x.orderNo||!x.orderDate||!x.weight||!x.touch)return toast('Order No, date, weight and touch are required');
+ let target=id?ord(id):null;
+ if(target)Object.assign(target,x);else{target={id:Date.now(),...x};db.orders.push(target)}
+ if(target.status==='Delivered'&&!target.delivered)target.delivered=new Date().toISOString().slice(0,10);
+ save();closeModal();renderAll();toast('Order saved as '+target.status);
+}
+function setStatus(id,s){
+ let o=ord(id);if(!o)return toast('Order not found');
+ o.status=STATUS.includes(s)?s:'Pending';
+ if(o.status==='Started'&&!o.startDate)o.startDate=new Date().toISOString().slice(0,10);
+ if(o.status==='Delivered'&&!o.delivered)o.delivered=new Date().toISOString().slice(0,10);
+ save();renderAll();toast('Status updated: '+o.status);
+}
+function deleteOrder(id){if(confirm('Delete this order?')){db.orders=db.orders.filter(o=>o.id!=id);save();renderAll();toast('Order deleted')}}
+function copyOrder(id){
+ let o=ord(id),c=cust(o.customerId);
+ let s='Order: '+o.orderNo+'\nCustomer: '+c.name+'\nMobile: '+c.mobile+'\nType: '+o.type+'\nWeight: '+o.weight+' g\nTouch: '+o.touch+'\nScrew: '+(o.screw||'-')+'\nLady Ring: '+(o.ladyRing||'-')+'\nGent Ring: '+(o.gentRing||'-')+'\nHUID: '+o.huid+'\nAdvance: ₹'+(o.advanceAmount||0)+' ('+o.advanceMode+')\nStatus: '+o.status;
+ navigator.clipboard?.writeText(s);toast('Order details copied');
+}
+function renderOrders(){
+ let q=($('oq')?.value||'').toLowerCase(),type=$('ofType')?.value||'',st=$('ofStatus')?.value||'';
+ let a=db.orders.filter(o=>(o.orderNo+' '+cust(o.customerId).name+' '+cust(o.customerId).shop+' '+cust(o.customerId).mobile+' '+o.status).toLowerCase().includes(q)&&(!type||o.type===type)&&(!st||o.status===st));
+ $('orders').innerHTML='<h2>Order Management</h2><div class="actions"><button class="orange" onclick="openOrder()">+ Manual Order</button><input id="oq" placeholder="Search order / customer / shop / mobile" value="'+esc(q)+'" oninput="renderOrders()"><select id="ofType" onchange="renderOrders()"><option value="">All Types</option><option '+(type==='Direct'?'selected':'')+'>Direct</option><option '+(type==='SM'?'selected':'')+'>SM</option></select><select id="ofStatus" onchange="renderOrders()"><option value="">All Status</option>'+STATUS.map(s=>'<option '+(st===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div><div class="card tablewrap">'+(a.length?'<table><tr><th>Order</th><th>Date</th><th>Party</th><th>Type</th><th>Weight</th><th>Status</th><th>Actions</th></tr>'+a.slice().reverse().map(o=>'<tr><td>'+esc(o.orderNo)+'</td><td>'+esc(o.orderDate)+'</td><td>'+esc(cust(o.customerId).name)+'</td><td>'+esc(o.type)+'</td><td>'+fmt(o.weight)+'g</td><td>'+badge(o.status)+'</td><td><button class="light" onclick="openOrder('+o.id+')">Edit</button><button onclick="copyOrder('+o.id+')">Copy</button><button class="green" onclick="openWA('+o.customerId+','+o.id+')">WA</button><button onclick="printOrder('+o.id+')">Print</button><button class="red" onclick="deleteOrder('+o.id+')">Delete</button></td></tr>').join('')+'</table>':'<div class="empty">No orders found</div>')+'</div>';
+}
+function productionBlock(type){
+ let a=db.orders.filter(o=>o.type===type),weight=a.reduce((s,o)=>s+(+o.weight||0),0);
+ return '<div class="card"><h3>'+type+' Production</h3><div class="grid">'+STATUS.map(s=>'<div class="tile"><div class="muted">'+s+'</div><div class="kpi">'+a.filter(o=>o.status===s).length+'</div></div>').join('')+'</div><p class="muted">Total weight: '+fmt(weight)+'g</p><div class="tablewrap"><table><tr><th>Order</th><th>Customer</th><th>Weight</th><th>Touch</th><th>Start</th><th>Status</th></tr>'+(a.length?a.slice().reverse().map(o=>'<tr><td>'+esc(o.orderNo)+'</td><td>'+esc(cust(o.customerId).name)+'</td><td>'+fmt(o.weight)+'g</td><td>'+esc(o.touch)+'</td><td>'+esc(o.startDate||'-')+'</td><td><select onchange="setStatus('+o.id+',this.value)">'+STATUS.map(s=>'<option value="'+s+'" '+(o.status===s?'selected':'')+'>'+s+'</option>').join('')+'</select></td></tr>').join(''):'<tr><td colspan="6" class="empty">No orders</td></tr>')+'</table></div></div>';
+}
+function renderProduction(){$('production').innerHTML='<h2>Production</h2>'+productionBlock('Direct')+productionBlock('SM')}
+function reportData(){
+ let q=($('rq')?.value||'').toLowerCase(),type=$('rt')?.value||'',statusF=$('rs')?.value||'',from=$('rf')?.value||'',to=$('rto')?.value||'';
+ return db.orders.filter(o=>{let c=cust(o.customerId),text=(o.orderNo+' '+c.name+' '+c.shop+' '+c.mobile+' '+c.city+' '+c.state).toLowerCase();return text.includes(q)&&(!type||o.type===type)&&(!statusF||o.status===statusF)&&(!from||o.orderDate>=from)&&(!to||o.orderDate<=to)});
+}
+function customerSummary(a){
+ let m={};a.forEach(o=>{let id=o.customerId;m[id]??={c:cust(id),n:0,w:0};m[id].n++;m[id].w+=(+o.weight||0)});
+ let rows=Object.values(m);
+ return rows.length?'<table><tr><th>Customer</th><th>Orders</th><th>Weight</th></tr>'+rows.map(x=>'<tr><td>'+esc(x.c.name)+'</td><td>'+x.n+'</td><td>'+fmt(x.w)+'g</td></tr>').join('')+'</table>':'<div class="empty">No customer summary</div>';
+}
+function renderReports(){
+ let t=totals(),a=reportData();
+ $('reports').innerHTML='<h2>Database Reports</h2><div class="grid">'+[['Total Orders',db.orders.length],['Total Weight',fmt(t.weight)+'g'],['Direct',db.orders.filter(o=>o.type==='Direct').length],['SM',db.orders.filter(o=>o.type==='SM').length],['Pending',t.pending],['Started',t.started],['Finished',t.finished],['Delivered',t.delivered],['Cancelled',t.cancelled]].map(x=>'<div class="card"><div class="muted">'+x[0]+'</div><div class="kpi">'+x[1]+'</div></div>').join('')+'</div><div class="card"><h3>Search / Filter</h3><div class="formgrid"><div class="full"><input id="rq" placeholder="Customer / shop / mobile / order / city / state" value="'+esc($('rq')?.value||'')+'" oninput="renderReports()"></div><div><select id="rt" onchange="renderReports()"><option value="">Direct + SM</option><option '+(($('rt')?.value==='Direct')?'selected':'')+'>Direct</option><option '+(($('rt')?.value==='SM')?'selected':'')+'>SM</option></select></div><div><select id="rs" onchange="renderReports()"><option value="">All Status</option>'+STATUS.map(s=>'<option '+(($('rs')?.value===s)?'selected':'')+'>'+s+'</option>').join('')+'</select></div><div><label>From Date</label><input id="rf" type="date" value="'+esc($('rf')?.value||'')+'" onchange="renderReports()"></div><div><label>To Date</label><input id="rto" type="date" value="'+esc($('rto')?.value||'')+'" onchange="renderReports()"></div></div><div class="actions"><button onclick="exportCSV(a)">Export CSV</button><button onclick="printReport()">Print Report</button></div></div><div class="card tablewrap"><h3>Customer Summary</h3>'+customerSummary(a)+'<h3>Date-wise / Order Report</h3>'+(a.length?'<table><tr><th>Date</th><th>Order</th><th>Customer</th><th>Type</th><th>Weight</th><th>Status</th></tr>'+a.slice().reverse().map(o=>'<tr><td>'+esc(o.orderDate)+'</td><td>'+esc(o.orderNo)+'</td><td>'+esc(cust(o.customerId).name)+'</td><td>'+esc(o.type)+'</td><td>'+fmt(o.weight)+'g</td><td>'+badge(o.status)+'</td></tr>').join('')+'</table>':'<div class="empty">No matching orders</div>')+'</div>';
+}
+function applyTemplate(t,c,o,ex){
+ if(!t)return '';
+ let vars={name:c?.name||'',shop:c?.shop||'',order:o?.orderNo||'',weight:o?.weight||'',status:o?.status||'',city:c?.city||'',stall:ex?.stall||''};
+ return t.body.replace(/\{\{(\w+)\}\}/g,(m,k)=>vars[k]??m);
+}
+function openWA(customerId,orderId){
+ if(!db.customers.length)return toast('Add a customer first');
+ let c=cust(customerId),o=orderId?ord(orderId):db.orders.filter(x=>x.customerId==customerId).slice(-1)[0],t=db.templates[0],ex=o?db.exhibitions.find(e=>e.id==o.exhibitionId):null;
+ modal('WhatsApp Message','<div class="formgrid"><div><label>Customer</label><select id="wac" onchange="refreshWA()">'+db.customers.map(x=>'<option value="'+x.id+'" '+(x.id==customerId?'selected':'')+'>'+esc(x.name)+' — '+esc(x.mobile)+'</option>').join('')+'</select></div><div><label>Template</label><select id="wat" onchange="refreshWA()">'+db.templates.map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('')+'</select></div><div class="full"><label>Message</label><textarea id="wam" rows="10">'+esc(applyTemplate(t,c,o,ex))+'</textarea></div></div><div class="actions"><button class="green" onclick="sendWA()">Open WhatsApp</button><button class="light" onclick="copyWAModal()">Copy</button></div>');
+}
+function refreshWA(){let c=cust($('wac').value),o=db.orders.filter(x=>x.customerId==c.id).slice(-1)[0],ex=o?db.exhibitions.find(e=>e.id==o.exhibitionId):null,t=db.templates.find(x=>x.id==$('wat').value);$('wam').value=applyTemplate(t,c,o,ex)}
+function sendWA(){
+ let c=cust($('wac').value),n=(c.mobile||'').replace(/\D/g,'');
+ if(n.length===10)n=(db.settings.country||'91')+n;
+ if(n.length<10)return toast('Mobile number missing');
+ window.open('https://wa.me/'+n+'?text='+encodeURIComponent($('wam').value),'_blank');
+}
+async function copyWAModal(){try{await navigator.clipboard.writeText($('wam').value);toast('Message copied')}catch(e){toast('Copy unavailable')}}
+function renderWhatsApp(){
+ $('whatsapp').innerHTML='<h2>WhatsApp Center</h2>'+
+ '<div class="card"><h3>Individual WhatsApp</h3><p class="muted">Select a customer, choose a template, review the message and open WhatsApp.</p><button class="green" onclick="openWA(db.customers[0]?.id)">Open Individual WhatsApp</button></div>'+
+ '<div class="card"><h3>Bulk WhatsApp — Maximum 25</h3><div class="formgrid"><div><label>Template</label><select id="bt">'+db.templates.map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join('')+'</select></div><div><label>Search</label><input id="bq" placeholder="Search customer" oninput="renderBulkList()"></div></div><div class="actions"><button class="orange" onclick="selectBulk(true)">Select All (max 25)</button><button class="light" onclick="selectBulk(false)">Clear All</button><button class="green" onclick="nextBulk()">Open Next WhatsApp</button></div><p id="bc" class="muted"></p><div id="bl"></div></div>'+
+ '<div class="card"><h3>Image Sending</h3><p class="muted">Choose an image and open WhatsApp. Final sending is confirmed in WhatsApp.</p><input type="file" accept="image/*" id="waImage" onchange="previewWAImage(event)"><div id="imagePreview"></div></div>';
+ renderBulkList();
+}
+function renderBulkList(){
+ let q=($('bq')?.value||'').toLowerCase(),a=db.customers.filter(c=>(c.name+' '+c.shop+' '+c.mobile+' '+c.city).toLowerCase().includes(q));
+ if(!$('bc')||!$('bl'))return;
+ $('bc').textContent=bulkSel.size+' / 25 selected';
+ $('bl').innerHTML=a.map(c=>'<label style="display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid #eee"><input type="checkbox" '+(bulkSel.has(String(c.id))?'checked':'')+' onchange="toggleBulk('+c.id+',this.checked)"><span><b>'+esc(c.name)+'</b><br><span class="muted">'+esc(c.mobile)+(c.city?' · '+esc(c.city):'')+'</span></span></label>').join('')||'<div class="empty">No customers</div>';
+}
+function toggleBulk(id,on){if(on){if(bulkSel.size>=25)return toast('Maximum 25 customers');bulkSel.add(String(id))}else bulkSel.delete(String(id));renderBulkList()}
+function selectBulk(on){bulkSel=on?new Set(db.customers.slice(0,25).map(c=>String(c.id))):new Set();renderBulkList()}
+function nextBulk(){
+ let ids=[...bulkSel],i=+(localStorage.getItem('sjc_bulk_index')||0);
+ if(!ids.length)return toast('Select customers first');
+ if(i>=ids.length)i=0;
+ let c=cust(ids[i]),o=db.orders.filter(x=>x.customerId==c.id).slice(-1)[0],t=db.templates.find(x=>x.id==$('bt').value)||db.templates[0],ex=o?db.exhibitions.find(e=>e.id==o.exhibitionId):null,n=(c.mobile||'').replace(/\D/g,'');
+ if(n.length===10)n=(db.settings.country||'91')+n;
+ if(n.length<10)return toast('Mobile missing: '+c.name);
+ localStorage.setItem('sjc_bulk_index',String(i+1));
+ window.open('https://wa.me/'+n+'?text='+encodeURIComponent(applyTemplate(t,c,o,ex)),'_blank');
+ toast('Opened '+c.name);
+}
+function previewWAImage(e){
+ let f=e.target.files[0];if(!f)return;
+ let r=new FileReader();r.onload=()=>{$('imagePreview').innerHTML='<img class="preview" src="'+r.result+'"><p class="muted">For security, image sending is completed manually in WhatsApp.</p>'};r.readAsDataURL(f);
+}
+function openTemplate(id){
+ let t=id?db.templates.find(x=>x.id===id):{name:'',body:'Dear {{name}},\\n\\n'};
+ modal(id?'Edit Template':'New Template','<label>Template Name *</label><input id="tn" value="'+esc(t.name)+'"><label>Template Message *</label><textarea id="tb" rows="11">'+esc(t.body)+'</textarea><p class="muted">Variables: {{name}} {{shop}} {{order}} {{weight}} {{status}} {{city}} {{stall}}</p><button class="orange" onclick="saveTemplate(\''+(id||'')+'\')">Save Template</button>');
+}
+function saveTemplate(id){
+ let x={name:$('tn').value.trim(),body:$('tb').value};
+ if(!x.name||!x.body)return toast('Template name and message required');
+ if(id)Object.assign(db.templates.find(t=>t.id===id),x);else db.templates.push({id:'t'+Date.now(),...x});
+ save();closeModal();renderAll();toast('Template saved');
+}
+function delTemplate(id){if(confirm('Delete this template?')){db.templates=db.templates.filter(t=>t.id!==id);save();renderAll();toast('Template deleted')}}
+function renderTemplates(){
+ $('templates').innerHTML='<h2>Message Templates</h2><div class="actions"><button class="orange" onclick="openTemplate()">+ Add Template</button></div><div class="tiles">'+db.templates.map(t=>'<div class="tile"><h3>'+esc(t.name)+'</h3><p style="white-space:pre-wrap">'+esc(t.body)+'</p><button class="light" onclick="openTemplate(\''+esc(t.id)+'\')">Edit</button> <button class="red" onclick="delTemplate(\''+esc(t.id)+'\')">Delete</button></div>').join('')+'</div>';
+}
+function openExhibition(id){
+ let e=id?db.exhibitions.find(x=>x.id==id):{name:'',location:'',start:'',end:'',stall:'',notes:''};
+ modal(id?'Edit Exhibition':'New Exhibition','<div class="formgrid"><div><label>Exhibition Name *</label><input id="en" value="'+esc(e.name)+'"></div><div><label>Location</label><input id="el" value="'+esc(e.location)+'"></div><div><label>Start Date</label><input id="es" type="date" value="'+esc(e.start)+'"></div><div><label>End Date</label><input id="ee" type="date" value="'+esc(e.end)+'"></div><div><label>Stall No</label><input id="estall" value="'+esc(e.stall)+'"></div><div class="full"><label>Exhibition Notes</label><textarea id="enotes" rows="4">'+esc(e.notes)+'</textarea></div></div><button class="orange" onclick="saveExhibition('+(id||0)+')">Save Exhibition</button>');
+}
+function saveExhibition(id){
+ let x={name:$('en').value.trim(),location:$('el').value.trim(),start:$('es').value,end:$('ee').value,stall:$('estall').value.trim(),notes:$('enotes').value.trim()};
+ if(!x.name)return toast('Exhibition name required');
+ if(id)Object.assign(db.exhibitions.find(e=>e.id==id),x);else db.exhibitions.push({id:Date.now(),...x});
+ save();closeModal();renderAll();toast('Exhibition saved');
+}
+function delExhibition(id){
+ if(confirm('Delete this exhibition? Orders will not be deleted.')){
+  db.exhibitions=db.exhibitions.filter(e=>e.id!=id);db.orders.forEach(o=>{if(o.exhibitionId==id)o.exhibitionId=''});save();renderAll();toast('Exhibition deleted');
+ }
+}
+function exhibitionReport(id){
+ let e=db.exhibitions.find(x=>x.id==id),a=db.orders.filter(o=>o.exhibitionId==id),w=a.reduce((s,o)=>s+(+o.weight||0),0);
+ modal('Exhibition Report','<h3>'+esc(e.name)+'</h3><p>'+esc(e.location)+' · '+esc(e.start)+' → '+esc(e.end)+' · Stall: '+esc(e.stall||'-')+'</p><div class="grid"><div class="card">Customers<div class="kpi">'+new Set(a.map(o=>o.customerId)).size+'</div></div><div class="card">Orders<div class="kpi">'+a.length+'</div></div><div class="card">Weight<div class="kpi">'+fmt(w)+'g</div></div><div class="card">Direct / SM<div class="kpi">'+a.filter(o=>o.type==='Direct').length+' / '+a.filter(o=>o.type==='SM').length+'</div></div></div><div class="actions"><button onclick="printExhibition('+id+')">Print Exhibition Report</button></div>');
+}
+function printExhibition(id){
+ let e=db.exhibitions.find(x=>x.id==id),a=db.orders.filter(o=>o.exhibitionId==id);
+ printHtml('Exhibition Report','<h2>'+esc(e.name)+'</h2><p>'+esc(e.location)+' | '+esc(e.start)+' → '+esc(e.end)+' | Stall: '+esc(e.stall||'-')+'</p><table><tr><th>Order</th><th>Customer</th><th>Type</th><th>Weight</th><th>Status</th></tr>'+a.map(o=>'<tr><td>'+esc(o.orderNo)+'</td><td>'+esc(cust(o.customerId).name)+'</td><td>'+esc(o.type)+'</td><td>'+fmt(o.weight)+'g</td><td>'+esc(o.status)+'</td></tr>').join('')+'</table>');
+}
+function renderExhibitions(){
+ $('exhibitions').innerHTML='<h2>Exhibitions</h2><div class="actions"><button class="orange" onclick="openExhibition()">+ New Exhibition</button></div><div class="tiles">'+(db.exhibitions.map(e=>{let a=db.orders.filter(o=>o.exhibitionId==e.id);return '<div class="tile"><h3>'+esc(e.name)+'</h3><p class="muted">'+esc(e.location)+'<br>'+esc(e.start)+' → '+esc(e.end)+'<br>Stall: '+esc(e.stall||'-')+'</p><p><b>Customers:</b> '+new Set(a.map(o=>o.customerId)).size+'<br><b>Orders:</b> '+a.length+'<br><b>Weight:</b> '+fmt(a.reduce((s,o)=>s+(+o.weight||0),0))+'g</p><button onclick="exhibitionReport('+e.id+')">View Report</button> <button class="light" onclick="openExhibition('+e.id+')">Edit</button> <button class="red" onclick="delExhibition('+e.id+')">Delete</button></div>'}).join('')||'<div class="empty">No exhibitions</div>')+'</div>';
+}
+function printHtml(title,body){
+ let w=window.open('','_blank');if(!w)return toast('Popup blocked');
+ w.document.write('<html><head><title>'+esc(title)+'</title><style>body{font-family:Arial;padding:25px}h2{margin-bottom:6px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #ddd;text-align:left}th{background:#f2f2f2}</style></head><body><h2>'+esc(db.settings.company)+'</h2>'+body+'<script>window.print()<\\/script></body></html>');
+ w.document.close();
+}
+function printOrder(id){
+ let o=ord(id),c=cust(o.customerId),e=db.exhibitions.find(x=>x.id==o.exhibitionId);
+ printHtml('Order Slip','<h3>Order '+esc(o.orderNo)+'</h3><p><b>Customer:</b> '+esc(c.name)+'<br><b>Shop:</b> '+esc(c.shop||'-')+'<br><b>Mobile:</b> '+esc(c.mobile)+'<br><b>Address:</b> '+esc(c.address||'-')+'<br><b>Exhibition:</b> '+esc(e?.name||'-')+'<br><b>Date:</b> '+esc(o.orderDate)+'<br><b>Type:</b> '+esc(o.type)+'<br><b>Weight:</b> '+fmt(o.weight)+'g<br><b>Touch:</b> '+esc(o.touch)+'<br><b>Screw:</b> '+esc(o.screw||'-')+'<br><b>Lady Ring:</b> '+esc(o.ladyRing||'-')+'<br><b>Gent Ring:</b> '+esc(o.gentRing||'-')+'<br><b>HUID:</b> '+esc(o.huid)+'<br><b>Advance:</b> ₹'+esc(o.advanceAmount||0)+' ('+esc(o.advanceMode)+')<br><b>Status:</b> '+esc(o.status)+'<br><b>Start:</b> '+esc(o.startDate||'-')+'<br><b>Delivered:</b> '+esc(o.delivered||'-')+'</p><p><b>Notes:</b> '+esc(o.notes||'-')+'</p>');
+}
+function renderPrint(){
+ let opts=db.orders.slice().reverse().map(o=>'<option value="'+o.id+'">'+esc(o.orderNo)+' — '+esc(cust(o.customerId).name)+'</option>').join('');
+ if(!opts)opts='<option value="">No orders</option>';
+ $('print').innerHTML='<h2>Print Center</h2><div class="card"><label>Order</label><select id="po">'+opts+'</select><div class="actions"><button class="orange" onclick="printOrder(document.getElementById(\'po\').value)">Print Order</button><button onclick="printReport()">Print Filtered Report</button></div></div><div class="tiles"><div class="tile"><h3>Order Print</h3><p>Print a complete order slip with customer, weight, touch, HUID, advance and status details.</p></div><div class="tile"><h3>Reports</h3><p>Use Database Reports to filter and print order reports.</p></div><div class="tile"><h3>Exhibition</h3><p>Each exhibition has its own printable report.</p></div></div>';
+}
+function printReport(){let a=reportData();printHtml('Database Report','<h2>Database Report</h2><p>Generated: '+new Date().toLocaleString()+'</p><table><tr><th>Date</th><th>Order</th><th>Customer</th><th>Type</th><th>Weight</th><th>Status</th></tr>'+a.map(o=>'<tr><td>'+esc(o.orderDate)+'</td><td>'+esc(o.orderNo)+'</td><td>'+esc(cust(o.customerId).name)+'</td><td>'+esc(o.type)+'</td><td>'+fmt(o.weight)+'g</td><td>'+esc(o.status)+'</td></tr>').join('')+'</table>')}
+function exportCSV(a=db.orders){
+ let r=[['Order No','Date','Customer','Shop','Mobile','Type','Weight','Touch','Screw','Lady Ring','Gent Ring','HUID','Advance Mode','Advance Amount','Status','Start Date','Delivered Date','Exhibition'],...a.map(o=>{let c=cust(o.customerId),e=db.exhibitions.find(x=>x.id==o.exhibitionId);return[o.orderNo,o.orderDate,c.name,c.shop,c.mobile,o.type,o.weight,o.touch,o.screw,o.ladyRing,o.gentRing,o.huid,o.advanceMode,o.advanceAmount,o.status,o.startDate,o.delivered,e?.name||'']})];
+ let csv=r.map(row=>row.map(x=>'"'+String(x??'').replaceAll('"','""')+'"').join(',')).join('\n');
+ let aEl=document.createElement('a');aEl.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));aEl.download='shree-ji-database-report.csv';aEl.click();toast('CSV exported');
+}
+function renderScanner(){
+ $('scanner').innerHTML='<h2>Visiting Card Scanner</h2><div class="card"><p class="muted">Camera / upload → OCR → review → save as customer. English OCR is used by default.</p><div class="formgrid"><div><label>Camera / Upload Image</label><input id="cardFile" type="file" accept="image/*" capture="environment" onchange="previewCard(event)"><img id="cardImg" class="preview" style="display:none;margin-top:10px"></div><div><label>Shop Name</label><input id="snshop"><label>Customer Name *</label><input id="sn"><label>Mobile *</label><input id="sm"><label>Alternate Mobile</label><input id="sa"><label>City</label><input id="sc"></div><div class="full"><label>Full Address</label><textarea id="saddr" rows="4"></textarea></div><div class="full"><label>Detected Text</label><textarea id="ocrText" rows="6" readonly></textarea><div id="ocrStatus" class="muted"></div></div></div><div class="actions"><button class="orange" id="scanBtn" onclick="scanCard()" disabled>🔍 Scan Card</button><button class="light" onclick="clearScan()">Clear</button><button class="green" onclick="saveScan()">Save as Customer</button></div></div>';
+}
+function previewCard(e){
+ scanFile=e.target.files[0]||null;if(!scanFile)return;
+ let r=new FileReader();r.onload=()=>{$('cardImg').src=r.result;$('cardImg').style.display='block';$('scanBtn').disabled=false;$('ocrStatus').textContent='Photo ready. Tap Scan Card.'};r.readAsDataURL(scanFile);
+}
+async function scanCard(){
+ if(!scanFile)return;
+ if(!window.Tesseract)return toast('OCR library unavailable. Check internet and reload.');
+ $('scanBtn').disabled=true;$('ocrStatus').textContent='Scanning...';
+ try{
+  let r=await Tesseract.recognize(scanFile,'eng',{logger:m=>{if(m.status==='recognizing text')$('ocrStatus').textContent='Scanning '+Math.round((m.progress||0)*100)+'%'}});
+  let text=r.data.text||'';$('ocrText').value=text;
+  let lines=text.split(/\n/).map(x=>x.trim()).filter(Boolean);
+  let phones=[...text.matchAll(/(?:\+?91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}/g)].map(x=>x[0]);
+  $('sm').value=(phones[0]||'').replace(/\D/g,'').slice(-10);$('sa').value=(phones[1]||'').replace(/\D/g,'').slice(-10);
+  let bad=/phone|mobile|email|www|road|street|address|india|gold|jewell|llp|pvt|ltd/i;
+  let candidates=lines.filter(x=>x.length>2&&!bad.test(x)&&!/[0-9@]/.test(x));
+  $('sn').value=candidates[0]||'';$('snshop').value=candidates[1]||'';
+  $('saddr').value=lines.filter(x=>x!==$('sn').value&&x!==$('snshop').value).join(', ');
+  $('ocrStatus').textContent='Scan complete. Review the fields before saving.';
+ }catch(e){$('ocrStatus').textContent='OCR failed. Try a clearer photo.'}
+ finally{$('scanBtn').disabled=false}
+}
+function clearScan(){
+ scanFile=null;if($('cardFile'))$('cardFile').value='';
+ ['snshop','sn','sm','sa','sc','saddr','ocrText'].forEach(id=>{if($(id))$(id).value=''});
+ if($('cardImg')){$('cardImg').style.display='none';$('cardImg').removeAttribute('src')}
+ if($('scanBtn'))$('scanBtn').disabled=true;if($('ocrStatus'))$('ocrStatus').textContent='';
+}
+function saveScan(){
+ if(!$('sn').value.trim()||!$('sm').value.trim())return toast('Name and mobile required');
+ db.customers.push({id:Date.now(),name:$('sn').value.trim(),shop:$('snshop').value.trim(),contactPerson:'',mobile:$('sm').value.trim(),alt:$('sa').value.trim(),city:$('sc').value.trim(),address:$('saddr').value.trim(),state:'',exhibition:'',notes:'From visiting card scanner',dateAdded:new Date().toISOString().slice(0,10)});
+ save();toast('Customer saved');clearScan();go('customers');
+}
+function backup(){
+ let payload={app:'SHREE JI CONNECT',version:db.settings.version,exportedAt:new Date().toISOString(),data:db};
+ let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));a.download='shree-ji-connect-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();toast('Backup downloaded');
+}
+function restoreFile(e){
+ let f=e.target.files[0];if(!f)return;
+ let r=new FileReader();r.onload=()=>{try{let p=JSON.parse(r.result),x=p.data||p;if(!x.customers||!x.orders)throw 1;if(!confirm('Restore this backup? Current local data will be replaced.'))return;db={...structuredClone(defaults),...x,settings:{...defaults.settings,...(x.settings||{})},templates:x.templates||structuredClone(defaults.templates)};save();renderAll();toast('Data restored')}catch(z){toast('Invalid backup')}};r.readAsText(f);
+}
+function renderBackup(){
+ $('backup').innerHTML='<h2>Backup & Restore</h2><div class="card"><p>Your data is stored locally in this browser/device. Export backups regularly.</p><div class="actions"><button class="orange" onclick="backup()">Export / Download Backup</button><label style="display:inline-block;background:#eee;color:#222;border-radius:10px;padding:11px 16px;cursor:pointer;font-weight:700">Import Backup<input type="file" accept=".json" style="display:none" onchange="restoreFile(event)"></label><button class="red" onclick="resetData()">Reset Data</button></div><p class="danger-note">Important: local browser data can be lost if browser storage is cleared. Keep the JSON backup safely.</p></div>';
+}
+function resetData(){if(confirm('RESET ALL APP DATA? This cannot be undone. Export a backup first.')){localStorage.removeItem(KEY);location.reload()}}
+function renderSettings(){
+ $('settings').innerHTML='<h2>Settings</h2><div class="card"><div class="formgrid"><div><label>Company Name</label><input id="setCompany" value="'+esc(db.settings.company)+'"></div><div><label>Company Subtitle</label><input id="setSubtitle" value="'+esc(db.settings.subtitle)+'"></div><div><label>Company Phone</label><input id="setPhone" value="'+esc(db.settings.phone)+'"></div><div><label>WhatsApp Country Code</label><input id="setCountry" value="'+esc(db.settings.country)+'"></div><div class="full"><label>Company Address</label><textarea id="setAddress">'+esc(db.settings.address)+'</textarea></div><div><label>Default Order Type</label><select id="setType"><option '+(db.settings.defaultType==='Direct'?'selected':'')+'>Direct</option><option '+(db.settings.defaultType==='SM'?'selected':'')+'>SM</option></select></div><div><label>Default Status</label><select id="setStatus">'+STATUS.map(s=>'<option '+(db.settings.defaultStatus===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div><div><label>Theme</label><input value="Orange + Black Professional" disabled></div><div><label>App Version</label><input value="'+esc(db.settings.version)+'" disabled></div></div><div class="actions"><button class="orange" onclick="saveSettings()">Save Settings</button><button onclick="go(\'backup\')">Backup & Restore</button><button class="red" onclick="resetData()">Reset Data</button></div></div><div class="card"><h3>About App</h3><p>SHREE JI CONNECT — Business Class CRM<br>Version '+esc(db.settings.version)+'<br>Offline-first local database.</p></div>';
+}
+function saveSettings(){
+ db.settings.company=$('setCompany').value.trim();db.settings.subtitle=$('setSubtitle').value.trim();db.settings.phone=$('setPhone').value.trim();db.settings.country=$('setCountry').value.replace(/\D/g,'')||'91';db.settings.address=$('setAddress').value.trim();db.settings.defaultType=$('setType').value;db.settings.defaultStatus=$('setStatus').value;save();renderAll();toast('Settings saved');
+}
+function renderMenu(){
+ $('menu').innerHTML='<h2>Menu</h2><div class="tiles">'+[['dashboard','Dashboard'],['customers','Customer CRM'],['orders','Order Management'],['production','Production'],['reports','Database Reports'],['whatsapp','WhatsApp Center'],['templates','Message Templates'],['exhibitions','Exhibitions'],['print','Print Center'],['scanner','Visiting Card Scanner'],['backup','Backup & Restore'],['settings','Settings']].map(x=>'<div class="tile"><h3>'+x[1]+'</h3><button class="orange" onclick="go(\''+x[0]+'\')">Open</button></div>').join('')+'</div>';
+}
+function renderAll(){
+ $('brand').textContent=db.settings.company||'SHREE JI CONNECT';
+ $('subtitle').textContent=db.settings.subtitle||'Business CRM';
+ renderDashboard();renderCustomers();renderOrders();renderProduction();renderReports();renderWhatsApp();renderTemplates();renderExhibitions();renderPrint();renderScanner();renderBackup();renderSettings();renderMenu();nav();
+}
+go('dashboard');
+</script>
+</body>
+</html>
